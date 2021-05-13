@@ -1,11 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
@@ -19,17 +13,17 @@ namespace Menu
     public partial class Form_Bai4_TCPServer : Form
     {
         Socket listener;
-        Socket client;
 
-        Thread thread;
-
-        NetworkStream stream;
-        StreamReader reader;
-        StreamWriter writer;
+        Thread thread_handle_connection;
 
         IPAddress ip;
         int port;
         IPEndPoint ipe;
+
+        static readonly object _lock = new object();
+        static readonly Dictionary<int, Socket> listClients = new Dictionary<int, Socket>();
+        static readonly Dictionary<int, Thread> listThreads = new Dictionary<int, Thread>();
+        int count_clients;
 
         public class Infor
         {
@@ -69,42 +63,53 @@ namespace Menu
                 return true;
         }
 
-        public void Server_Thread()
+        public void Server_Handle_Connection()
         {
-            while (true)
+            while(true)
             {
-                client = listener.Accept();
+                count_clients += 1;
 
-                stream = new NetworkStream(client);
-                reader = new StreamReader(stream);
-                writer = new StreamWriter(stream);
+                Socket client = listener.Accept();
+                lock (_lock) listClients.Add(count_clients, client);
 
-                string indentify_id = reader.ReadLine();
-                Infor_Message(lb_message, $"{indentify_id} was connected");
-
-                while (SocketConnected(client))
-                {
-                    string data_str =  reader.ReadLine();
-
-                    if (data_str == string.Empty)
-                        continue;
-
-                    // ---- Uncomment if you want to close client disconnection use "quit" command ----
-                    //if (data_received == "quit")
-                    //    break;
-
-                    if (SocketConnected(client))
-                    {
-                        Infor infor = JsonConvert.DeserializeObject<Infor>(data_str);
-                        Infor_Message(lb_message, infor.Name + ": " + infor.Message);
-                    }
-                }
-
-                Infor_Message(lb_message, $"{indentify_id} was disconnected");
-
-                stream.Close();
-                client.Close();
+                Thread thread = new Thread(Server_Handle_Client);
+                lock (_lock) listThreads.Add(count_clients, thread);
+                thread.Start(count_clients);
             }
+        }
+
+        public void Server_Handle_Client(object id)
+        {
+            int client_id = (int)id;
+            Socket client = listClients[client_id];
+
+            NetworkStream stream = new NetworkStream(client);
+            StreamReader reader = new StreamReader(stream);
+            StreamWriter writer = new StreamWriter(stream);
+
+            string indentify_id = reader.ReadLine();
+            Infor_Message(lb_message, $"------ {indentify_id} connected");
+
+            while (SocketConnected(client))
+            {
+                string data_str =  reader.ReadLine();
+
+                if (data_str == string.Empty)
+                    continue;
+
+                if (SocketConnected(client))
+                {
+                    Infor infor = JsonConvert.DeserializeObject<Infor>(data_str);
+                    Infor_Message(lb_message, infor.Name + ": " + infor.Message);
+                }
+            }
+
+            Infor_Message(lb_message, $"------ {indentify_id} disconnected");
+
+            lock (_lock) listClients.Remove(client_id);
+
+            stream.Close();
+            client.Close();
         }
 
         /// <summary>
@@ -123,11 +128,10 @@ namespace Menu
 
             try
             {
-                thread = new Thread(new ThreadStart(Server_Thread));
-
-                listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                thread_handle_connection = new Thread(new ThreadStart(Server_Handle_Connection));
 
                 ipe = new IPEndPoint(ip, port);
+                listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 listener.Bind(ipe);
                 listener.Listen(-1);
@@ -137,7 +141,7 @@ namespace Menu
                 btn_listen.Enabled = false;
                 btn_close.Enabled = true;
 
-                thread.Start();
+                thread_handle_connection.Start();
             }
             catch (Exception ex)
             {
@@ -149,9 +153,15 @@ namespace Menu
         {
             try
             {
+                foreach (Thread thread in listThreads.Values)
+                {
+                    thread.Abort();
+                }
+
+                listClients.Clear();
                 listener.Close();
 
-                thread.Abort();
+                thread_handle_connection.Abort();
 
                 Infor_Message(lb_message, "Connection was closed");
 
