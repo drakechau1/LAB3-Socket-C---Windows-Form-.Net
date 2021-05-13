@@ -34,7 +34,7 @@ namespace Menu
 
         private void Form_Dashboard_Load(object sender, EventArgs e)
         {
-
+            this.Text = $"Dashboard {selective_flag}";
         }
 
         private void btn_client_Click(object sender, EventArgs e)
