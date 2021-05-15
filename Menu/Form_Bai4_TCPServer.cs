@@ -53,7 +53,21 @@ namespace Menu
             MessageBox.Show(err, "Error");
         }
 
-        bool SocketConnected(Socket s)
+        public void Boardcast(string message, Socket except_socket)
+        {
+            foreach (var list in listClients)
+            {
+                if (list.Value != except_socket)
+                {
+                    NetworkStream stream = new NetworkStream(list.Value);
+                    StreamWriter writer = new StreamWriter(stream);
+                    writer.AutoFlush = true;
+                    writer.WriteLine(message);
+                }
+            }
+        }
+
+        public bool Socket_Connected(Socket s)
         {
             bool part1 = s.Poll(1000, SelectMode.SelectRead);
             bool part2 = (s.Available == 0);
@@ -86,25 +100,45 @@ namespace Menu
             NetworkStream stream = new NetworkStream(client);
             StreamReader reader = new StreamReader(stream);
             StreamWriter writer = new StreamWriter(stream);
+            writer.AutoFlush = true;
 
-            string indentify_id = reader.ReadLine();
-            Infor_Message(lb_message, $"------ {indentify_id} connected");
+            string client_name = reader.ReadLine();
+            Infor_Message(lb_message, $"------ {client_name} connected");
 
-            while (SocketConnected(client))
+            // Send hello message
+            Infor hello = new Infor
+            {
+                Name = client_name,
+                Message = "connected"
+            };
+            Boardcast(JsonConvert.SerializeObject(hello), client);
+
+
+            while (Socket_Connected(client))
             {
                 string data_str =  reader.ReadLine();
 
                 if (data_str == string.Empty)
                     continue;
 
-                if (SocketConnected(client))
+                Boardcast(data_str, client);
+
+                if (Socket_Connected(client))
                 {
                     Infor infor = JsonConvert.DeserializeObject<Infor>(data_str);
-                    Infor_Message(lb_message, infor.Name + ": " + infor.Message);
+                    string message = infor.Name + ": " + infor.Message;
+                    Infor_Message(lb_message, message);
                 }
             }
 
-            Infor_Message(lb_message, $"------ {indentify_id} disconnected");
+            Infor bye = new Infor
+            {
+                Name = client_name,
+                Message = " disconnected"
+            };
+            Boardcast(JsonConvert.SerializeObject(bye), client);
+
+            Infor_Message(lb_message, $"------ {client_name} disconnected");
 
             lock (_lock) listClients.Remove(client_id);
 

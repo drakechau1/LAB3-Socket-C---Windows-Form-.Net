@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace Menu
 {
@@ -14,12 +15,11 @@ namespace Menu
 
         Stream stream;
         StreamWriter writer;
-        StreamReader reader;
+
+        Thread thread_receiving_handle;
 
         IPAddress remote_ip;
         int remote_port;
-
-        string name;
 
         public class Infor
         {
@@ -51,20 +51,15 @@ namespace Menu
 
         public void Send_Message(string name, string message)
         {
-            var infor = new Infor
+            Infor infor = new Infor
             {
                 Name = name,
                 Message = message
             };
-
             string infor_str = JsonConvert.SerializeObject(infor);
-
-            writer.AutoFlush = true;
 
             try
             {
-                writer.WriteLine(infor_str);
-
                 if (name == string.Empty)
                 {
                     Show_ERROR("Name is empty");
@@ -73,16 +68,12 @@ namespace Menu
 
                 if (message != string.Empty)
                 {
-                    Infor_Message(lb_message, name +": "+message);
+                    writer.WriteLine(infor_str);
+
+                    Infor_Message(lb_message, message);
+
+                    txt_message.Text = string.Empty;
                 }
-
-                // ---- Uncomment if you want to close client disconnection use "quit" command ----
-                //if (message == "quit")
-                //{
-                //    Close_Connection();
-                //}
-
-                txt_message.Text = string.Empty;
             }
             catch (Exception ex)
             {
@@ -90,13 +81,37 @@ namespace Menu
             }
         }
 
+        public void Receiving_Handle(object o)
+        {
+            TcpClient client = (TcpClient)o;
+            StreamReader reader = new StreamReader(client.GetStream());
+
+            while (true)
+            {
+                try
+                {
+                    string data_str = reader.ReadLine();
+                    Infor infor = JsonConvert.DeserializeObject<Infor>(data_str);
+
+                    Infor_Message(lb_message, $"{infor.Name}: {infor.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Show_ERROR(ex.Message);
+                }
+            }
+        }
+
         public void Close_Connection()
         {
+
             try
             {
+                thread_receiving_handle.Abort();
+
                 stream.Close();
                 client.Close();
-
+                
                 Infor_Message(lb_message, "Disconnected");
 
                 btn_connect.Enabled = true;
@@ -142,11 +157,14 @@ namespace Menu
 
                 stream = client.GetStream();
                 writer = new StreamWriter(stream);
-                reader = new StreamReader(stream);
-
                 writer.AutoFlush = true;
-                name = txt_name.Text;
-                writer.WriteLine(name);
+
+                // Send indentify name
+                writer.WriteLine(txt_name.Text);
+
+                // Create receiving handle thread
+                thread_receiving_handle = new Thread(Receiving_Handle);
+                thread_receiving_handle.Start(client);
 
                 btn_connect.Enabled = false;
                 btn_disconnect.Enabled = true;
