@@ -113,7 +113,6 @@ namespace Menu
             };
             Boardcast(JsonConvert.SerializeObject(hello), client);
 
-
             while (Socket_Connected(client))
             {
                 string data_str =  reader.ReadLine();

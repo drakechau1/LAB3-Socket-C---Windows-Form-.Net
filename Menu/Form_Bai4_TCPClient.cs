@@ -93,18 +93,20 @@ namespace Menu
                     string data_str = reader.ReadLine();
                     Infor infor = JsonConvert.DeserializeObject<Infor>(data_str);
 
-                    Infor_Message(lb_message, $"{infor.Name}: {infor.Message}");
+                    if (data_str != string.Empty)
+                        Infor_Message(lb_message, $"{infor.Name}: {infor.Message}");
                 }
                 catch (Exception ex)
                 {
-                    Show_ERROR(ex.Message);
+                    Console.WriteLine(ex.Message);
+                    client.Close();
+                    break;
                 }
             }
         }
 
         public void Close_Connection()
         {
-
             try
             {
                 thread_receiving_handle.Abort();
