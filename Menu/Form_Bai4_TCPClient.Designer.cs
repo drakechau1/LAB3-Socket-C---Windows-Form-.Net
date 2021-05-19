@@ -97,6 +97,8 @@ namespace Menu
             // 
             // btn_disconnect
             // 
+            this.btn_disconnect.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btn_disconnect.AutoSize = true;
             this.btn_disconnect.Enabled = false;
             this.btn_disconnect.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btn_disconnect.Location = new System.Drawing.Point(603, 539);
@@ -121,6 +123,7 @@ namespace Menu
             // 
             // btn_clearMessage
             // 
+            this.btn_clearMessage.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btn_clearMessage.Enabled = false;
             this.btn_clearMessage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btn_clearMessage.Location = new System.Drawing.Point(32, 539);
@@ -166,6 +169,9 @@ namespace Menu
             // 
             // lb_message
             // 
+            this.lb_message.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.lb_message.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lb_message.FormattingEnabled = true;
             this.lb_message.ItemHeight = 25;

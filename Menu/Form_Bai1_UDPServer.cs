@@ -77,6 +77,7 @@ namespace Menu
                 thread.Start();
                 btn_close.Enabled = true;
                 btn_listen.Enabled = false;
+                txt_port.Enabled = false;
             }
             else
             {
@@ -93,6 +94,7 @@ namespace Menu
 
             btn_close.Enabled = false;
             btn_listen.Enabled = true;
+            txt_port.Enabled = true;
         }
     }
 }
